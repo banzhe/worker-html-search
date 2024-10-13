@@ -61,6 +61,22 @@ async function handleInsert(env: Env, formData: FormData) {
 	return Response.json(inserted);
 }
 
+async function handleSummarize(env: Env, formData: FormData) {
+	const textHtmlFile = formData.get("html");
+	if (!textHtmlFile) return Response.json("No file uploaded", { status: 400 });
+	let textHtml = textHtmlFile;
+	if (typeof textHtmlFile !== 'string') {
+		textHtml = await textHtmlFile.text();
+	}
+	const modelResp = await env.AI.run(
+		"@cf/facebook/bart-large-cnn",
+		{
+			input_text: textHtml as string,
+		},
+	);
+	return Response.json(modelResp);
+}
+
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		let path = new URL(request.url).pathname;
@@ -73,6 +89,11 @@ export default {
 		if (path === "/insert") {
 			const formData = await request.formData();
 			return handleInsert(env, formData);
+		}
+
+		if (path === "/summarize") {
+			const formData = await request.formData();
+			return handleSummarize(env, formData);
 		}
 
 		const query = new URL(request.url).searchParams;
